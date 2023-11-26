@@ -13,7 +13,7 @@ import (
 const (
 	DEFAULT_WIDTH  = 30
 	DEFAULT_HEIGHT = 30
-	DEFAULT_MINES  = 80
+	DEFAULT_MINES  = 99
 )
 
 func main() {
@@ -37,7 +37,7 @@ func initialModel(width int, height int, numMines int) model {
 		}
 	}
 
-	// TODO instantiate the mines after the first click to make sure first
+	// TODO instantiate the mines after the first sweep to make sure first
 	// click never hits a mine
 	r := rand.New(rand.NewSource(time.Now().UnixNano()))
 	r.Shuffle(len(positions), func(i, j int) {
@@ -55,6 +55,8 @@ func initialModel(width int, height int, numMines int) model {
 			numberOfMines: numMines,
 		},
 		minefield: minefield,
+		cursorX:   width/2 - 1,
+		cursorY:   height/2 - 1,
 	}
 }
 
@@ -93,8 +95,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			}
 		case "r":
 			isDebug := m.prefs.isDebug
+			y, x := m.cursorY, m.cursorX
 			m = initialModel(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_MINES)
 			m.prefs.isDebug = isDebug
+			m.cursorY, m.cursorX = y, x
 		case "enter", " ":
 			if m.isGameOver {
 				break
@@ -154,21 +158,31 @@ func (m model) View() string {
 	}
 
 	sb.WriteString("\n")
+	if !m.isGameOver {
+		sb.WriteString("Press h/j/k/l or ←↓↑→ to move\n")
+		sb.WriteString("Press enter or space to sweep\n")
+		sb.WriteString("Press f to toggle flag.\n")
+		sb.WriteString("Press d to toggle debug.\n")
+	}
 	sb.WriteString("Press q to quit.\n")
 	sb.WriteString("Press r to start a new game.\n")
-	if !m.isGameOver {
-		sb.WriteString("Press f to flag.\n")
-		sb.WriteString("Press m to place question mark.\n")
-		sb.WriteString("Press d to debug.\n")
-	}
 	return sb.String()
 }
 
-func sweep(x, y int, m *model, userDidSweep bool, swept set[point]) {
+func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
 	mine := &m.minefield[y][x]
 
+	if mine.isRevealed && userInitiatedSweep {
+		adjMines := countAdjacentMines(x, y, *m)
+		adjFlags := countAdjacentFlags(x, y, *m)
+		if adjFlags == adjMines {
+			sweepRemainingAdjacent(x, y, m)
+		}
+		return
+	}
+
 	if mine.isMine {
-		if userDidSweep {
+		if userInitiatedSweep {
 			m.isGameOver = true
 		}
 		return
@@ -184,14 +198,18 @@ func sweep(x, y int, m *model, userDidSweep bool, swept set[point]) {
 		for dx := -1; dx <= 1; dx++ {
 			for dy := -1; dy <= 1; dy++ {
 				if (dx == 0 && dy == 0) ||
-					(dx*dy == 1) ||
-					(dx*dy == -1) ||
 					x+dx < 0 ||
 					x+dx > w-1 ||
 					y+dy < 0 ||
 					y+dy > h-1 {
 					continue
 				}
+
+				// if (dx*dy == 1 || dx*dy == -1) &&
+				// 	countAdjacentMines(x+dx, y+dy, *m) == 0 {
+				// 	continue
+				// }
+
 				sweep(x+dx, y+dy, m, false, swept)
 			}
 		}
@@ -229,6 +247,39 @@ func viewForMineAtPosition(x, y int, m model) string {
 		8: "8️⃣",
 	}
 	return numViewMap[touching]
+}
+
+func sweepRemainingAdjacent(x, y int, m *model) {
+	w := m.prefs.width
+	h := m.prefs.height
+	for dx := -1; dx <= 1; dx++ {
+		for dy := -1; dy <= 1; dy++ {
+			if (dx == 0 && dy == 0) || x+dx < 0 || x+dx > w-1 || y+dy < 0 || y+dy > h-1 {
+				continue
+			}
+			if !m.minefield[y+dy][x+dx].isRevealed &&
+				!m.minefield[y+dy][x+dx].isFlagged {
+				sweep(x+dx, y+dy, m, true, make(set[point]))
+			}
+		}
+	}
+}
+
+func countAdjacentFlags(x, y int, m model) int {
+	adj := 0
+	w := m.prefs.width
+	h := m.prefs.height
+	for dx := -1; dx <= 1; dx++ {
+		for dy := -1; dy <= 1; dy++ {
+			if (dx == 0 && dy == 0) || x+dx < 0 || x+dx > w-1 || y+dy < 0 || y+dy > h-1 {
+				continue
+			}
+			if m.minefield[y+dy][x+dx].isFlagged {
+				adj++
+			}
+		}
+	}
+	return adj
 }
 
 func countAdjacentMines(x, y int, m model) int {
