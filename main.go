@@ -170,18 +170,18 @@ func (m model) View() string {
 }
 
 func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
-	mine := &m.minefield[y][x]
+	cell := &m.minefield[y][x]
 
-	if mine.isRevealed && userInitiatedSweep {
+	if cell.isRevealed && userInitiatedSweep {
 		adjMines := countAdjacentMines(x, y, *m)
 		adjFlags := countAdjacentFlags(x, y, *m)
 		if adjFlags == adjMines {
-			sweepRemainingAdjacent(x, y, m)
+			autoSweep(x, y, m)
 		}
 		return
 	}
 
-	if mine.isMine {
+	if cell.isMine {
 		if userInitiatedSweep {
 			m.isGameOver = true
 		}
@@ -216,7 +216,7 @@ func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
 
 	}
 
-	mine.isRevealed = true
+	cell.isRevealed = true
 }
 
 func checkDidWin(m model) bool {
@@ -249,7 +249,7 @@ func viewForMineAtPosition(x, y int, m model) string {
 	return numViewMap[touching]
 }
 
-func sweepRemainingAdjacent(x, y int, m *model) {
+func forEachSurroundingCellDo(x, y int, m *model, do func(x, y int, m *model)) {
 	w := m.prefs.width
 	h := m.prefs.height
 	for dx := -1; dx <= 1; dx++ {
@@ -257,44 +257,36 @@ func sweepRemainingAdjacent(x, y int, m *model) {
 			if (dx == 0 && dy == 0) || x+dx < 0 || x+dx > w-1 || y+dy < 0 || y+dy > h-1 {
 				continue
 			}
-			if !m.minefield[y+dy][x+dx].isRevealed &&
-				!m.minefield[y+dy][x+dx].isFlagged {
-				sweep(x+dx, y+dy, m, true, make(set[point]))
-			}
+			do(x+dx, y+dy, m)
 		}
 	}
 }
 
+func autoSweep(x, y int, m *model) {
+	forEachSurroundingCellDo(x, y, m, func(x, y int, m *model) {
+		cell := m.minefield[y][x]
+		if !cell.isRevealed && !cell.isFlagged {
+			sweep(x, y, m, true, make(set[point]))
+		}
+	})
+}
+
 func countAdjacentFlags(x, y int, m model) int {
 	adj := 0
-	w := m.prefs.width
-	h := m.prefs.height
-	for dx := -1; dx <= 1; dx++ {
-		for dy := -1; dy <= 1; dy++ {
-			if (dx == 0 && dy == 0) || x+dx < 0 || x+dx > w-1 || y+dy < 0 || y+dy > h-1 {
-				continue
-			}
-			if m.minefield[y+dy][x+dx].isFlagged {
-				adj++
-			}
+	forEachSurroundingCellDo(x, y, &m, func(x, y int, m *model) {
+		if m.minefield[y][x].isFlagged {
+			adj++
 		}
-	}
+	})
 	return adj
 }
 
 func countAdjacentMines(x, y int, m model) int {
 	adj := 0
-	w := m.prefs.width
-	h := m.prefs.height
-	for dx := -1; dx <= 1; dx++ {
-		for dy := -1; dy <= 1; dy++ {
-			if (dx == 0 && dy == 0) || x+dx < 0 || x+dx > w-1 || y+dy < 0 || y+dy > h-1 {
-				continue
-			}
-			if m.minefield[y+dy][x+dx].isMine {
-				adj++
-			}
+	forEachSurroundingCellDo(x, y, &m, func(x, y int, m *model) {
+		if m.minefield[y][x].isMine {
+			adj++
 		}
-	}
+	})
 	return adj
 }
