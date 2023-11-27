@@ -9,6 +9,8 @@ import (
 	"time"
 
 	tea "github.com/charmbracelet/bubbletea"
+	"github.com/charmbracelet/lipgloss"
+	"github.com/charmbracelet/lipgloss/table"
 )
 
 const (
@@ -18,11 +20,13 @@ const (
 )
 
 var wFlag, hFlag, numMinesFlag int
+var shouldUseAscii bool
 
 func main() {
 	flag.IntVar(&wFlag, "w", DEFAULT_WIDTH, "minefield width")
 	flag.IntVar(&hFlag, "h", DEFAULT_HEIGHT, "minefield height")
 	flag.IntVar(&numMinesFlag, "n", DEFAULT_MINES, "number of mines")
+	flag.BoolVar(&shouldUseAscii, "a", false, "use ascii characters")
 
 	flag.Parse()
 
@@ -136,6 +140,19 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 
 func (m model) View() string {
 	var sb strings.Builder
+	writeHeader(&sb, m)
+	sb.WriteString("\n\n")
+	if shouldUseAscii {
+		writeAsciiMinefield(&sb, m)
+	} else {
+		writeMinefield(&sb, m)
+	}
+	sb.WriteString("\n\n")
+	writeHelp(&sb, m)
+	return sb.String()
+}
+
+func writeHeader(sb *strings.Builder, m model) {
 	if m.isGameOver {
 		sb.WriteString("Game Over! ")
 		if checkDidWin(m) {
@@ -147,8 +164,9 @@ func (m model) View() string {
 		sb.WriteString("...go sweep...")
 		sb.WriteString(fmt.Sprintf(" %v mines left", minesLeft(m)))
 	}
-	sb.WriteString("\n\n")
+}
 
+func writeMinefield(sb *strings.Builder, m model) {
 	for y, row := range m.minefield {
 		for x, mine := range row {
 			switch {
@@ -166,8 +184,77 @@ func (m model) View() string {
 		}
 		sb.WriteString("\n")
 	}
+}
 
-	sb.WriteString("\n")
+func writeAsciiMinefield(sb *strings.Builder, m model) {
+	strs := make([][]string, m.prefs.height)
+	for y, row := range m.minefield {
+		strs[y] = make([]string, m.prefs.width)
+		for x, mine := range row {
+			switch {
+			case x == m.cursorX && y == m.cursorY:
+				strs[y][x] = "*"
+			case (m.isGameOver || m.prefs.isDebug) && mine.isMine:
+				strs[y][x] = "B"
+			case mine.isRevealed:
+				strs[y][x] = asciiViewForMineAtPosition(x, y, m)
+			case mine.isFlagged:
+				strs[y][x] = "F"
+			default:
+				strs[y][x] = " "
+			}
+		}
+	}
+	t := table.New().
+		Border(lipgloss.NormalBorder()).
+		BorderRow(true).
+		BorderColumn(true).
+		Rows(strs...).
+		StyleFunc(func(row, col int) lipgloss.Style {
+			var fg lipgloss.TerminalColor = lipgloss.NoColor{}
+			var bg lipgloss.TerminalColor = lipgloss.NoColor{}
+
+			switch strs[row-1][col] {
+			case "0":
+				fg = lipgloss.Color("#292929")
+			case "1":
+				fg = lipgloss.Color("#74adf2")
+			case "2":
+				fg = lipgloss.Color("#00FF00")
+			case "3":
+				fg = lipgloss.Color("#FF0000")
+			case "4":
+				fg = lipgloss.Color("#28706d")
+			case "5":
+				fg = lipgloss.Color("#b06446")
+			case "6":
+				fg = lipgloss.Color("#FF0000")
+			case "7":
+				fg = lipgloss.Color("#8a7101")
+			case "8":
+				fg = lipgloss.Color("#111")
+				bg = lipgloss.Color("#bfbfbf")
+			case "*":
+				fg = lipgloss.Color("#FF33FF")
+			case "F":
+				bg = lipgloss.Color("#ffee00")
+				fg = lipgloss.Color("#111")
+			case "B":
+				bg = lipgloss.Color("#FF0000")
+				fg = lipgloss.Color("#111")
+			case " ":
+				bg = lipgloss.Color("#bfbfbf")
+			}
+
+			return lipgloss.NewStyle().
+				Foreground(fg).
+				Background(bg).
+				Padding(0, 1)
+		})
+	sb.WriteString(t.Render())
+}
+
+func writeHelp(sb *strings.Builder, m model) {
 	if m.prefs.showHelp {
 		if !m.isGameOver {
 			sb.WriteString("Press h/j/k/l or ←↓↑→ to move\n")
@@ -179,7 +266,6 @@ func (m model) View() string {
 		sb.WriteString("Press r to start a new game.\n")
 		sb.WriteString("Press ? to toggle help text\n")
 	}
-	return sb.String()
 }
 
 func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
@@ -253,6 +339,13 @@ func checkDidWin(m model) bool {
 		}
 	}
 	return true
+}
+
+func asciiViewForMineAtPosition(x, y int, m model) string {
+	if m.minefield[y][x].isMine {
+		return "B"
+	}
+	return fmt.Sprint(countAdjacentMines(x, y, m))
 }
 
 func viewForMineAtPosition(x, y int, m model) string {
