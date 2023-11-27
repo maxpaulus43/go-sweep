@@ -107,7 +107,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			isDebug := m.prefs.isDebug
 			y, x := m.cursorY, m.cursorX
 			showHelp := m.prefs.showHelp
-			m = initialModel(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_MINES)
+			m = initialModel(wFlag, hFlag, numMinesFlag)
 			m.prefs.isDebug = isDebug
 			m.cursorY, m.cursorX = y, x
 			m.prefs.showHelp = showHelp
