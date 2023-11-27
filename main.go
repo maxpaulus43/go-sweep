@@ -53,6 +53,7 @@ func initialModel(width int, height int, numMines int) model {
 			width:         width,
 			height:        height,
 			numberOfMines: numMines,
+			showHelp:      true,
 		},
 		minefield: minefield,
 		cursorX:   width/2 - 1,
@@ -96,9 +97,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 		case "r":
 			isDebug := m.prefs.isDebug
 			y, x := m.cursorY, m.cursorX
+			showHelp := m.prefs.showHelp
 			m = initialModel(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_MINES)
 			m.prefs.isDebug = isDebug
 			m.cursorY, m.cursorX = y, x
+			m.prefs.showHelp = showHelp
 		case "enter", " ":
 			if m.isGameOver {
 				break
@@ -112,13 +115,10 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 				break
 			}
 			cursorMine.isFlagged = !cursorMine.isFlagged
-		case "m":
-			if m.isGameOver {
-				break
-			}
-			cursorMine.isUnknown = !cursorMine.isUnknown
 		case "d":
 			m.prefs.isDebug = !m.prefs.isDebug
+		case "?":
+			m.prefs.showHelp = !m.prefs.showHelp
 		}
 	}
 
@@ -136,6 +136,7 @@ func (m model) View() string {
 		}
 	} else {
 		sb.WriteString("...go sweep...")
+		sb.WriteString(fmt.Sprintf(" %v mines left", minesLeft(m)))
 	}
 	sb.WriteString("\n\n")
 
@@ -158,14 +159,17 @@ func (m model) View() string {
 	}
 
 	sb.WriteString("\n")
-	if !m.isGameOver {
-		sb.WriteString("Press h/j/k/l or ←↓↑→ to move\n")
-		sb.WriteString("Press enter or space to sweep\n")
-		sb.WriteString("Press f to toggle flag.\n")
-		sb.WriteString("Press d to toggle debug.\n")
+	if m.prefs.showHelp {
+		if !m.isGameOver {
+			sb.WriteString("Press h/j/k/l or ←↓↑→ to move\n")
+			sb.WriteString("Press enter or space to sweep\n")
+			sb.WriteString("Press f to toggle flag.\n")
+			sb.WriteString("Press d to toggle debug.\n")
+		}
+		sb.WriteString("Press q to quit.\n")
+		sb.WriteString("Press r to start a new game.\n")
+		sb.WriteString("Press ? to toggle help text\n")
 	}
-	sb.WriteString("Press q to quit.\n")
-	sb.WriteString("Press r to start a new game.\n")
 	return sb.String()
 }
 
@@ -217,6 +221,18 @@ func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
 	}
 
 	cell.isRevealed = true
+}
+
+func minesLeft(m model) int {
+	flags := 0
+	for y := range m.minefield {
+		for _, mine := range m.minefield[y] {
+			if mine.isFlagged && !mine.isRevealed {
+				flags++
+			}
+		}
+	}
+	return m.prefs.numberOfMines - flags
 }
 
 func checkDidWin(m model) bool {

@@ -13,13 +13,13 @@ type preferences struct {
 	height        int
 	numberOfMines int
 	isDebug       bool
+	showHelp      bool
 }
 
 type cell struct {
 	isMine     bool
 	isFlagged  bool
 	isRevealed bool
-	isUnknown  bool
 }
 
 type point struct {
