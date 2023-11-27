@@ -1,6 +1,7 @@
 package main
 
 import (
+	"flag"
 	"fmt"
 	"math/rand"
 	"os"
@@ -16,8 +17,16 @@ const (
 	DEFAULT_MINES  = 99
 )
 
+var wFlag, hFlag, numMinesFlag int
+
 func main() {
-	m := initialModel(DEFAULT_WIDTH, DEFAULT_HEIGHT, DEFAULT_MINES)
+	flag.IntVar(&wFlag, "w", DEFAULT_WIDTH, "minefield width")
+	flag.IntVar(&hFlag, "h", DEFAULT_HEIGHT, "minefield height")
+	flag.IntVar(&numMinesFlag, "n", DEFAULT_MINES, "number of mines")
+
+	flag.Parse()
+
+	m := initialModel(wFlag, hFlag, numMinesFlag)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("There's been an error: %v", err)
