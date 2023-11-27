@@ -11,4 +11,11 @@ I needed to learn go in preparation for advent of code this year, so I thought I
 1. `go build .`
 2. `./go-sweep`
 
+### Options
+
+- `-w 30`: width of the minefield. default 30
+- `-h 30`: height of the minefield. default 30
+- `-n 90`: number of mines. default 99
+- `-a`: use ascii character instead. by default, uses emojis to render cells
+
 Please feel free to make an issue if you find any problems with the game! Sweep on!
