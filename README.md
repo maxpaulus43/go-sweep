@@ -4,7 +4,13 @@ I needed to learn go in preparation for advent of code this year, so I thought I
 
 ## Demo
 
+### emoji render view
+
 ![go-sweep gif](./go-sweep.gif)
+
+### ascii view
+
+![go-sweep ascii gif](./go-sweep-ascii.gif)
 
 ## To Run
 
