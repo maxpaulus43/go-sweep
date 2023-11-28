@@ -1,11 +1,12 @@
 package main
 
 type model struct {
-	prefs      preferences
-	minefield  [][]cell
-	cursorX    int
-	cursorY    int
-	isGameOver bool
+	prefs          preferences
+	minefield      [][]cell
+	cursorX        int
+	cursorY        int
+	isGameOver     bool
+	secondsElapsed int
 }
 
 type preferences struct {

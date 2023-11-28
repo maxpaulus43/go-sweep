@@ -74,8 +74,17 @@ func initialModel(width int, height int, numMines int) model {
 	}
 }
 
+type tickMsg struct{}
+
 func (m model) Init() tea.Cmd {
-	return nil
+	return tick()
+}
+
+func tick() tea.Cmd {
+	return func() tea.Msg {
+		time.Sleep(1 * time.Second)
+		return tickMsg{}
+	}
 }
 
 func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
@@ -83,6 +92,12 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 	cursorMine := &m.minefield[m.cursorY][m.cursorX]
 
 	switch msg := msg.(type) {
+	case tickMsg:
+		if m.isGameOver {
+			break
+		}
+		m.secondsElapsed++
+		return m, tick()
 	case tea.KeyMsg:
 		switch msg.String() {
 		case "ctrl+c", "q":
@@ -166,8 +181,9 @@ func writeHeader(sb *strings.Builder, m model) {
 		}
 	} else {
 		sb.WriteString("...go sweep...")
-		sb.WriteString(fmt.Sprintf(" %v mines left", minesLeft(m)))
+		sb.WriteString(fmt.Sprintf("\n%v mines left", minesLeft(m)))
 	}
+	sb.WriteString(fmt.Sprintf("\n%v seconds elapsed", m.secondsElapsed))
 }
 
 func writeMinefield(sb *strings.Builder, m model) {
