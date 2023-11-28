@@ -127,7 +127,11 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			if m.isGameOver {
 				break
 			}
-			cursorMine.isFlagged = !cursorMine.isFlagged
+			if cursorMine.isRevealed {
+				sweep(m.cursorX, m.cursorY, &m, true, make(set[point]))
+			} else {
+				cursorMine.isFlagged = !cursorMine.isFlagged
+			}
 		case "d":
 			m.prefs.isDebug = !m.prefs.isDebug
 		case "?":
@@ -274,7 +278,7 @@ func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
 	if cell.isRevealed && userInitiatedSweep {
 		adjMines := countAdjacentMines(x, y, *m)
 		adjFlags := countAdjacentFlags(x, y, *m)
-		if adjFlags == adjMines {
+		if adjFlags >= adjMines {
 			autoSweep(x, y, m)
 		}
 		return
