@@ -1,6 +1,6 @@
 module github.com/maxpaulus43/go-sweep
 
-go 1.21.1
+go 1.20
 
 require (
 	github.com/charmbracelet/bubbletea v0.24.2
