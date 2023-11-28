@@ -58,7 +58,7 @@ func initialModel(width int, height int, numMines int) model {
 	})
 	for i := 0; i < numMines; i++ {
 		p := positions.pop()
-		minefield[p.x][p.y].isMine = true
+		minefield[p.y][p.x].isMine = true
 	}
 
 	return model{
