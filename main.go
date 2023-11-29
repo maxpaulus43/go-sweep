@@ -56,7 +56,8 @@ func initialModel(width int, height int, numMines int, ascii bool) model {
 	r.Shuffle(len(positions), func(i, j int) {
 		positions[i], positions[j] = positions[j], positions[i]
 	})
-	for i := 0; i < numMines; i++ {
+	numMines = min(numMines, width*height)
+	for i := 0; i < numMines && i < width*height; i++ {
 		p := positions.pop()
 		minefield[p.y][p.x].isMine = true
 	}
@@ -315,30 +316,12 @@ func sweep(x, y int, m *model, userInitiatedSweep bool, swept set[point]) {
 
 	touching := countAdjacentMines(x, y, *m)
 
-	w := m.prefs.width
-	h := m.prefs.height
 	p := point{x: x, y: y}
 	if touching == 0 && !swept.has(p) {
 		swept.add(p)
-		for dx := -1; dx <= 1; dx++ {
-			for dy := -1; dy <= 1; dy++ {
-				if (dx == 0 && dy == 0) ||
-					x+dx < 0 ||
-					x+dx > w-1 ||
-					y+dy < 0 ||
-					y+dy > h-1 {
-					continue
-				}
-
-				// if (dx*dy == 1 || dx*dy == -1) &&
-				// 	countAdjacentMines(x+dx, y+dy, *m) == 0 {
-				// 	continue
-				// }
-
-				sweep(x+dx, y+dy, m, false, swept)
-			}
-		}
-
+		forEachSurroundingCellDo(x, y, m, func(x, y int, m *model) {
+			sweep(x, y, m, false, swept)
+		})
 	}
 
 	cell.isRevealed = true
@@ -433,4 +416,12 @@ func countAdjacentMines(x, y int, m model) int {
 		}
 	})
 	return adj
+}
+
+func min(x, y int) int {
+	if x < y {
+		return x
+	} else {
+		return y
+	}
 }
