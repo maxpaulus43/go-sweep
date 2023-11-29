@@ -15,6 +15,7 @@ type preferences struct {
 	numberOfMines int
 	isDebug       bool
 	showHelp      bool
+	ascii         bool
 }
 
 type cell struct {

@@ -30,7 +30,7 @@ func main() {
 
 	flag.Parse()
 
-	m := initialModel(wFlag, hFlag, numMinesFlag)
+	m := initialModel(wFlag, hFlag, numMinesFlag, shouldUseAscii)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("There's been an error: %v", err)
@@ -38,7 +38,7 @@ func main() {
 	}
 }
 
-func initialModel(width int, height int, numMines int) model {
+func initialModel(width int, height int, numMines int, ascii bool) model {
 	positions := make(stack[point], 0, width*height)
 	minefield := make([][]cell, height)
 
@@ -67,6 +67,7 @@ func initialModel(width int, height int, numMines int) model {
 			height:        height,
 			numberOfMines: numMines,
 			showHelp:      true,
+			ascii:         ascii,
 		},
 		minefield: minefield,
 		cursorX:   width/2 - 1,
@@ -126,7 +127,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			isDebug := m.prefs.isDebug
 			y, x := m.cursorY, m.cursorX
 			showHelp := m.prefs.showHelp
-			m = initialModel(wFlag, hFlag, numMinesFlag)
+			ascii := m.prefs.ascii
+			m = initialModel(wFlag, hFlag, numMinesFlag, ascii)
 			m.prefs.isDebug = isDebug
 			m.cursorY, m.cursorX = y, x
 			m.prefs.showHelp = showHelp
@@ -152,6 +154,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.prefs.isDebug = !m.prefs.isDebug
 		case "?":
 			m.prefs.showHelp = !m.prefs.showHelp
+		case "a":
+			m.prefs.ascii = !m.prefs.ascii
 		}
 	}
 
@@ -162,7 +166,7 @@ func (m model) View() string {
 	var sb strings.Builder
 	writeHeader(&sb, m)
 	sb.WriteString("\n\n")
-	if shouldUseAscii {
+	if m.prefs.ascii {
 		writeAsciiMinefield(&sb, m)
 	} else {
 		writeMinefield(&sb, m)
@@ -286,6 +290,7 @@ func writeHelp(sb *strings.Builder, m model) {
 		sb.WriteString("Press q to quit.\n")
 		sb.WriteString("Press r to start a new game.\n")
 		sb.WriteString("Press ? to toggle help text\n")
+		sb.WriteString("Press a to toggle ascii view\n")
 	}
 }
 
