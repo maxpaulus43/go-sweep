@@ -133,7 +133,7 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.prefs.isDebug = isDebug
 			m.cursorY, m.cursorX = y, x
 			m.prefs.showHelp = showHelp
-			return m, tick()
+			break
 		case "enter", " ":
 			if m.isGameOver {
 				break
