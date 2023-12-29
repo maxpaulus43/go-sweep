@@ -20,17 +20,17 @@ const (
 )
 
 var wFlag, hFlag, numMinesFlag int
-var shouldUseAscii bool
+var shouldUseEmoji bool
 
 func main() {
 	flag.IntVar(&wFlag, "w", DEFAULT_WIDTH, "minefield width")
 	flag.IntVar(&hFlag, "h", DEFAULT_HEIGHT, "minefield height")
 	flag.IntVar(&numMinesFlag, "n", DEFAULT_MINES, "number of mines")
-	flag.BoolVar(&shouldUseAscii, "a", false, "use ascii characters")
+	flag.BoolVar(&shouldUseEmoji, "e", false, "use emoji characters")
 
 	flag.Parse()
 
-	m := initialModel(wFlag, hFlag, numMinesFlag, shouldUseAscii)
+	m := initialModel(wFlag, hFlag, numMinesFlag, shouldUseEmoji)
 	p := tea.NewProgram(m)
 	if _, err := p.Run(); err != nil {
 		fmt.Printf("There's been an error: %v", err)
@@ -38,7 +38,7 @@ func main() {
 	}
 }
 
-func initialModel(width int, height int, numMines int, ascii bool) model {
+func initialModel(width int, height int, numMines int, shouldUseEmoji bool) model {
 	positions := make(stack[point], 0, width*height)
 	minefield := make([][]cell, height)
 
@@ -64,11 +64,11 @@ func initialModel(width int, height int, numMines int, ascii bool) model {
 
 	return model{
 		prefs: preferences{
-			width:         width,
-			height:        height,
-			numberOfMines: numMines,
-			showHelp:      true,
-			ascii:         ascii,
+			width:          width,
+			height:         height,
+			numberOfMines:  numMines,
+			showHelp:       true,
+			shouldUseEmoji: shouldUseEmoji,
 		},
 		minefield: minefield,
 		cursorX:   width/2 - 1,
@@ -128,8 +128,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			isDebug := m.prefs.isDebug
 			y, x := m.cursorY, m.cursorX
 			showHelp := m.prefs.showHelp
-			ascii := m.prefs.ascii
-			m = initialModel(wFlag, hFlag, numMinesFlag, ascii)
+			isEmoji := m.prefs.shouldUseEmoji
+			m = initialModel(wFlag, hFlag, numMinesFlag, isEmoji)
 			m.prefs.isDebug = isDebug
 			m.cursorY, m.cursorX = y, x
 			m.prefs.showHelp = showHelp
@@ -155,8 +155,8 @@ func (m model) Update(msg tea.Msg) (tea.Model, tea.Cmd) {
 			m.prefs.isDebug = !m.prefs.isDebug
 		case "?":
 			m.prefs.showHelp = !m.prefs.showHelp
-		case "a":
-			m.prefs.ascii = !m.prefs.ascii
+		case "e":
+			m.prefs.shouldUseEmoji = !m.prefs.shouldUseEmoji
 		}
 	}
 
@@ -167,10 +167,10 @@ func (m model) View() string {
 	var sb strings.Builder
 	writeHeader(&sb, m)
 	sb.WriteString("\n\n")
-	if m.prefs.ascii {
-		writeAsciiMinefield(&sb, m)
-	} else {
+	if m.prefs.shouldUseEmoji {
 		writeMinefield(&sb, m)
+	} else {
+		writeAsciiMinefield(&sb, m)
 	}
 	sb.WriteString("\n\n")
 	writeHelp(&sb, m)

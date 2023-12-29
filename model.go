@@ -10,12 +10,12 @@ type model struct {
 }
 
 type preferences struct {
-	width         int
-	height        int
-	numberOfMines int
-	isDebug       bool
-	showHelp      bool
-	ascii         bool
+	width          int
+	height         int
+	numberOfMines  int
+	isDebug        bool
+	showHelp       bool
+	shouldUseEmoji bool
 }
 
 type cell struct {
